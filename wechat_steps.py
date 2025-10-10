@@ -146,6 +146,9 @@ def process_all_accounts():
     
     logging.info(f"任务完成: {summary}")
     return results, summary
+    print(summary)  # 这行很重要，确保summary被输出到stdout
+    logging.info(f"任务完成: {summary}")
+    return results, summary
 
 def main():
     """主函数"""
