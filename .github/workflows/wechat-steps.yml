@@ -9,7 +9,7 @@ on:
   workflow_dispatch:  # 允许手动触发
 
 permissions:
-  contents: write  # 授予写入仓库的权限
+  contents: write
 
 jobs:
   submit-steps:
@@ -33,12 +33,18 @@ jobs:
       env:
         WECHAT_ACCOUNTS: ${{ secrets.WECHAT_ACCOUNTS }}
       run: |
-        # 运行步数提交并保存结果到文件
-        python wechat_steps.py > result.txt 2>&1
-        # 从日志中提取摘要信息
+        # 直接运行并捕获输出
+        OUTPUT=$(python wechat_steps.py 2>&1)
+        echo "$OUTPUT"
+        # 提取关键信息
         echo "SUMMARY<<EOF" >> $GITHUB_ENV
-        grep -E "(微信步数提交报告|总账号|成功|失败|✅|❌|大号|小号|倩|吕)" result.txt | head -20 >> $GITHUB_ENV
+        echo "$OUTPUT" | grep -E "(微信步数提交报告|总账号|成功|失败|✅|❌|大号|小号|倩|吕|[0-9]+步)" | head -15 >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
+        
+    - name: Debug Summary
+      run: |
+        echo "Summary content:"
+        echo "$SUMMARY"
         
     - name: Send email notification
       env:
@@ -46,7 +52,6 @@ jobs:
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
       run: |
-        # 使用环境变量中的SUMMARY内容
         python push.py "$SUMMARY"
         
     - name: Keep repository alive
