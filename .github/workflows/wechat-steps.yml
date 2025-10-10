@@ -33,11 +33,12 @@ jobs:
       env:
         WECHAT_ACCOUNTS: ${{ secrets.WECHAT_ACCOUNTS }}
       run: |
-        python wechat_steps.py > result.txt
-        summary=$(cat result.txt | grep -E "(✅|❌|账号|步数|时段|总账号|成功|失败)" | head -20)
-        echo "summary<<EOF" >> $GITHUB_OUTPUT
-        echo "$summary" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        # 运行步数提交并保存结果到文件
+        python wechat_steps.py > result.txt 2>&1
+        # 从日志中提取摘要信息
+        echo "SUMMARY<<EOF" >> $GITHUB_ENV
+        grep -E "(微信步数提交报告|总账号|成功|失败|✅|❌|大号|小号|倩|吕)" result.txt | head -20 >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
         
     - name: Send email notification
       env:
@@ -45,7 +46,8 @@ jobs:
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
       run: |
-        python push.py "${{ steps.submit.outputs.summary }}"
+        # 使用环境变量中的SUMMARY内容
+        python push.py "$SUMMARY"
         
     - name: Keep repository alive
       run: |
