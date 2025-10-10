@@ -26,6 +26,10 @@ def send_email(subject, content):
         msg['To'] = receiver_email
         msg['Subject'] = subject
 
+        # 如果内容为空，使用默认内容
+        if not content or content.strip() == "":
+            content = "微信步数提交任务已完成，但未获取到详细结果。请查看GitHub Actions日志获取更多信息。"
+        
         # 添加邮件内容
         msg.attach(MIMEText(content, 'plain'))
 
@@ -38,6 +42,7 @@ def send_email(subject, content):
         server.quit()
         
         logging.info(f"✅ 邮件发送成功: {subject}")
+        logging.info(f"邮件内容: {content}")
         return True
 
     except Exception as e:
