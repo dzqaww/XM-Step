@@ -1,0 +1,51 @@
+name: WeChat Steps Auto Submit
+
+on:
+  schedule:
+    # 北京时间 9:00, 14:00, 19:00 (UTC+8)
+    - cron: '0 1 * * *'  # 早上9点 (UTC+8)
+    - cron: '0 6 * * *'  # 下午2点 (UTC+8) 
+    - cron: '0 11 * * *' # 晚上7点 (UTC+8)
+  workflow_dispatch:  # 允许手动触发
+
+permissions:
+  contents: write  # 授予写入仓库的权限
+
+jobs:
+  submit-steps:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: pip install requests
+      
+    - name: Run step submission
+      id: submit
+      env:
+        WECHAT_ACCOUNTS: ${{ secrets.WECHAT_ACCOUNTS }}
+      run: |
+        python wechat_steps.py
+        echo "summary<<EOF" >> $GITHUB_OUTPUT
+        echo "微信步数提交任务已完成 - $(date)" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Send email notification
+      env:
+        EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
+      run: |
+        python push.py "微信步数提交任务已完成 - $(date)"
+        
+    - name: Keep repository alive
+      run: |
+        python keep_alive.py
