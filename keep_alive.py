@@ -30,8 +30,13 @@ def update_status_file():
     else:
         updated_content = content
     
-    # 写入新内容（将最新记录放在最前面）
-    final_content = f"# 项目状态记录\n\n{new_entry}{updated_content.split('# 项目状态记录\n\n', 1)[-1] if '# 项目状态记录\n\n' in updated_content else updated_content}"
+    # 修复f-string中的反斜杠问题
+    header = "# 项目状态记录\n\n"
+    if '# 项目状态记录\n\n' in updated_content:
+        content_after_header = updated_content.split('# 项目状态记录\n\n', 1)[-1]
+        final_content = header + new_entry + content_after_header
+    else:
+        final_content = header + new_entry + updated_content
     
     with open(status_file, 'w', encoding='utf-8') as f:
         f.write(final_content)
@@ -50,7 +55,7 @@ def commit_and_push():
         os.system('git add .')
         
         # 提交更改
-        commit_message = f"更新状态文件 - {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}"
+        commit_message = f"更新状态文件 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         os.system(f'git commit -m "{commit_message}"')
         
         # 推送到仓库
