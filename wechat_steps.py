@@ -4,6 +4,7 @@ import random
 import os
 import json
 from datetime import datetime
+import time
 
 # 设置日志
 logging.basicConfig(
@@ -93,6 +94,7 @@ def process_all_accounts():
     for i, account in enumerate(accounts, 1):
         username = account.get("username")
         password = account.get("password")
+        alias = account.get("alias", f"账号{i}")  # 获取别名，默认为"账号{i}"
         
         if not username or not password:
             logging.warning(f"账号 {i} 配置不完整，跳过")
@@ -100,10 +102,11 @@ def process_all_accounts():
             
         # 隐藏用户名敏感信息
         masked_username = username[:3] + "****" + username[-2:] if len(username) > 5 else "***"
-        logging.info(f"处理账号 {i}/{len(accounts)}: {masked_username}")
+        logging.info(f"处理账号 {i}/{len(accounts)}: {alias} ({masked_username})")
         
         success, message, steps = submit_wechat_steps(username, password)
         result = {
+            "alias": alias,
             "account": masked_username,
             "success": success,
             "message": message,
@@ -113,9 +116,9 @@ def process_all_accounts():
         
         if success:
             success_count += 1
-            logging.info(f"✓ 账号 {i} 成功: {steps}步")
+            logging.info(f"✓ {alias} 成功: {steps}步")
         else:
-            logging.error(f"✗ 账号 {i} 失败: {message}")
+            logging.error(f"✗ {alias} 失败: {message}")
         
         # 请求间隔，避免频繁访问
         if i < len(accounts):
@@ -137,9 +140,9 @@ def process_all_accounts():
         f"🎯 步数范围: {min_steps}-{max_steps}\n"
     )
     
-    for i, result in enumerate(results, 1):
+    for result in results:
         status = "✅" if result["success"] else "❌"
-        summary += f"\n{status} 账号{i}: {result['account']} - {result['steps']}步"
+        summary += f"\n{status} {result['alias']}: {result['steps']}步"
     
     logging.info(f"任务完成: {summary}")
     return results, summary
