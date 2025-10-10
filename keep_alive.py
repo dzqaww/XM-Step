@@ -17,7 +17,7 @@ def update_status_file():
         with open(status_file, 'r', encoding='utf-8') as f:
             content = f.read()
     else:
-        content = "# 项目状态记录\n\n"
+        content = ""
     
     # 添加新的状态记录
     new_entry = f"## {current_time}\n- 微信步数提交任务已执行\n- 仓库活跃状态已更新\n\n"
@@ -30,18 +30,23 @@ def update_status_file():
     else:
         updated_content = content
     
-    # 修复f-string中的反斜杠问题
+    # 完全重写构建内容的方式，避免复杂f-string
     header = "# 项目状态记录\n\n"
-    if '# 项目状态记录\n\n' in updated_content:
-        content_after_header = updated_content.split('# 项目状态记录\n\n', 1)[-1]
-        final_content = header + new_entry + content_after_header
+    
+    # 如果内容已经包含头部，就分割处理
+    if header.strip() in updated_content:
+        parts = updated_content.split(header.strip(), 1)
+        if len(parts) > 1:
+            final_content = header + new_entry + parts[1]
+        else:
+            final_content = header + new_entry + updated_content
     else:
         final_content = header + new_entry + updated_content
     
     with open(status_file, 'w', encoding='utf-8') as f:
         f.write(final_content)
     
-    logging.info(f"✅ 已更新状态文件: {status_file}")
+    logging.info(f"已更新状态文件: {status_file}")
     return True
 
 def commit_and_push():
@@ -56,33 +61,41 @@ def commit_and_push():
         
         # 提交更改
         commit_message = f"更新状态文件 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        os.system(f'git commit -m "{commit_message}"')
+        result = os.system(f'git commit -m "{commit_message}"')
         
+        if result != 0:
+            logging.info("没有更改需要提交")
+            return True
+            
         # 推送到仓库
-        os.system('git push')
-        
-        logging.info("✅ 更改已提交并推送到仓库")
-        return True
+        push_result = os.system('git push')
+        if push_result == 0:
+            logging.info("更改已提交并推送到仓库")
+            return True
+        else:
+            logging.error("推送失败")
+            return False
+            
     except Exception as e:
-        logging.error(f"❌ 提交更改失败: {str(e)}")
+        logging.error(f"提交更改失败: {str(e)}")
         return False
 
 def main():
     """主函数"""
     try:
-        logging.info("🔄 开始执行仓库保活任务")
+        logging.info("开始执行仓库保活任务")
         
         # 更新状态文件
         if update_status_file():
             # 提交并推送更改
             if commit_and_push():
-                logging.info("🎉 仓库保活任务完成")
+                logging.info("仓库保活任务完成")
                 return True
         
-        logging.error("❌ 仓库保活任务失败")
+        logging.error("仓库保活任务失败")
         return False
     except Exception as e:
-        logging.error(f"❌ 仓库保活任务异常: {str(e)}")
+        logging.error(f"仓库保活任务异常: {str(e)}")
         return False
 
 if __name__ == "__main__":
